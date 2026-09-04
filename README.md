@@ -53,10 +53,10 @@ python3 midifilter.py -v
 
 Edit `config.ini` in the same directory as `midifilter.py`.
 
-### MIDI Port
+### MIDI Port (partial device name also works, as long its unique)
 
 ```ini
-MIDI_PORT=Force
+MIDI_PORT=your-device-name
 ```
 
 Uses wildcard matching — any port containing "Force" will be opened.
