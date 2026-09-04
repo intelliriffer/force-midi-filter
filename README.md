@@ -14,11 +14,7 @@ A Python script that filters incoming MIDI input based on channel-specific rules
 
 ### On the Akai Force (Mockba mod)
 
-The Mockba mod ships with Python preinstalled — **no setup needed**. Just copy the files (`midifilter.py`, `config.ini`) to the Force and run the script. If `mido` is not already present in the mod's Python, install it once:
-
-```bash
-pip install mido
-```
+The Mockba mod ships with Python preinstalled — **no setup needed**. Just copy the files (`midifilter.py`, `config.ini`) to the Force and run the script. 
 
 ### On macOS / Linux
 
@@ -38,19 +34,19 @@ No other dependencies required.
 ### List available MIDI input ports
 
 ```bash
-python midifilter.py -l
+python3 midifilter.py -l
 ```
 
 ### Run the filter
 
 ```bash
-python midifilter.py
+python3 midifilter.py
 ```
 
 ### Verbose mode (debug logging)
 
 ```bash
-python midifilter.py -v
+python3 midifilter.py -v
 ```
 
 ## Configuration
@@ -118,7 +114,7 @@ These can be edited in `midifilter.py`:
 Run the test suite:
 
 ```bash
-python test.py
+python3 test.py
 ```
 
 ## Files
