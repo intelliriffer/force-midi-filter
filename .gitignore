@@ -6,4 +6,6 @@ dist/
 .agent/
 .pi/
 skills-catalog.md
-
+__pycache__/
+*.pyc
+.venv/
