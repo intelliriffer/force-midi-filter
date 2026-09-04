@@ -225,6 +225,9 @@ def is_message_allowed(msg, channel_rules):
             return True
 
         if rule["type"] == "allow":
+            # NOTE covers both note_on and note_off
+            if msg_type in ("note_on", "note_off") and "NOTE" in rule["messages"]:
+                return True
             # Map MIDO message type to our alias
             for alias, mido_type in MESSAGE_TYPE_MAP.items():
                 if mido_type == msg_type:

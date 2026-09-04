@@ -8,14 +8,16 @@ Run with: python test.py
 
 import sys
 import os
+import time
+import subprocess
 import unittest
+import mido
 from unittest.mock import patch, MagicMock
 
 # Add the script directory to path so we can import midifilter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import midifilter
-
 
 class TestMessageMapping(unittest.TestCase):
     """Test message type alias mapping."""
@@ -323,6 +325,177 @@ class TestListPorts(unittest.TestCase):
         ]
         midifilter.list_ports()
         mock_print.assert_called()
+
+
+class TestMIDILoopback(unittest.TestCase):
+    """Real MIDI loopback tests using virtual ports."""
+
+    TEST_INPUT_PORT = "MidiFilterTestIn"
+    TEST_OUTPUT_PORT = "MidiFilter-Mockba"
+    TEST_CONFIG = """
+[DEFAULT]
+MIDI_PORT=MidiFilterTestIn
+
+[CH-1]
+RULE=ALL
+
+[CH-2]
+RULE=BLOCK
+
+[CH-3]
+RULE=NOTE
+
+[CH-4]
+RULE=CC,PC
+"""
+
+    @classmethod
+    def setUpClass(cls):
+        """Create virtual test input port."""
+        cls.input_port = mido.open_output(cls.TEST_INPUT_PORT, virtual=True)
+        cls.output_port = None
+
+    @classmethod
+    def tearDownClass(cls):
+        """Close virtual ports."""
+        if cls.input_port:
+            cls.input_port.close()
+
+    def _run_filter_process(self, config_content):
+        """Run midifilter.py as subprocess with test config."""
+        config_path = os.path.join(os.path.dirname(__file__), "test_loopback.ini")
+        with open(config_path, "w") as f:
+            f.write(config_content)
+
+        python_path = sys.executable
+        proc = subprocess.Popen(
+            [python_path, "midifilter.py", "-c", config_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+        )
+        return proc, config_path
+
+    def _stop_filter(self, proc):
+        """Terminate the filter process, killing it if it doesn't exit."""
+        proc.terminate()
+        try:
+            proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+
+    def tearDown(self):
+        """Close the output port between tests."""
+        if self.output_port is not None:
+            try:
+                self.output_port.close()
+            except Exception:
+                pass
+            self.output_port = None
+    def _wait_for_output_port(self, timeout=10.0):
+        """Wait for filter's output port to appear, then open it as input."""
+        start = time.time()
+        while time.time() - start < timeout:
+            for name in mido.get_input_names():
+                if self.TEST_OUTPUT_PORT in name:
+                    return mido.open_input(name)
+            time.sleep(0.2)
+        self.fail(f"Filter output port '{self.TEST_OUTPUT_PORT}' did not appear")
+
+    def _send_messages(self, messages):
+        """Open output port lazily, then send MIDI messages to the input port."""
+        if self.output_port is None:
+            self.output_port = self._wait_for_output_port()
+            time.sleep(0.3)  # let filter attach its input callback
+        for msg in messages:
+            self.input_port.send(msg)
+            time.sleep(0.05)
+
+    def _get_output_messages(self, timeout=2.0):
+        """Read messages from the output port."""
+        output = []
+        start = time.time()
+        while time.time() - start < timeout:
+            try:
+                msg = self.output_port.poll()
+                if msg:
+                    output.append(msg)
+            except OSError:
+                break
+        return output
+
+    def test_ch1_all_passes_notes(self):
+        """CH-1 ALL rule should pass NOTE messages."""
+        proc, config_path = self._run_filter_process(self.TEST_CONFIG)
+        time.sleep(1)
+
+        self._send_messages([
+            mido.Message("note_on", channel=0, note=60, velocity=100),
+            mido.Message("note_off", channel=0, note=60, velocity=0),
+        ])
+
+        output = self._get_output_messages(timeout=3.0)
+        self._stop_filter(proc)
+        os.remove(config_path)
+
+        self.assertEqual(len(output), 2)
+        self.assertEqual(output[0].type, "note_on")
+        self.assertEqual(output[1].type, "note_off")
+
+    def test_ch2_blocks_all(self):
+        """CH-2 BLOCK rule should drop all messages."""
+        proc, config_path = self._run_filter_process(self.TEST_CONFIG)
+        time.sleep(1)
+
+        self._send_messages([
+            mido.Message("note_on", channel=1, note=60, velocity=100),
+            mido.Message("control_change", channel=1, control=1, value=50),
+        ])
+
+        output = self._get_output_messages(timeout=3.0)
+        self._stop_filter(proc)
+        os.remove(config_path)
+
+        self.assertEqual(len(output), 0)
+
+    def test_ch3_allows_only_notes(self):
+        """CH-3 NOTE rule should allow notes but block CC."""
+        proc, config_path = self._run_filter_process(self.TEST_CONFIG)
+        time.sleep(1)
+
+        self._send_messages([
+            mido.Message("note_on", channel=2, note=60, velocity=100),
+            mido.Message("control_change", channel=2, control=1, value=50),
+            mido.Message("note_off", channel=2, note=60, velocity=0),
+        ])
+
+        output = self._get_output_messages(timeout=3.0)
+        self._stop_filter(proc)
+        os.remove(config_path)
+
+        self.assertEqual(len(output), 2)
+        self.assertEqual(output[0].type, "note_on")
+        self.assertEqual(output[1].type, "note_off")
+
+    def test_ch4_allows_cc_and_pc(self):
+        """CH-4 CC,PC rule should allow CC and PC but block notes."""
+        proc, config_path = self._run_filter_process(self.TEST_CONFIG)
+        time.sleep(1)
+
+        self._send_messages([
+            mido.Message("control_change", channel=3, control=1, value=50),
+            mido.Message("program_change", channel=3, program=5),
+            mido.Message("note_on", channel=3, note=60, velocity=100),
+        ])
+
+        output = self._get_output_messages(timeout=3.0)
+        self._stop_filter(proc)
+        os.remove(config_path)
+
+        self.assertEqual(len(output), 2)
+        self.assertEqual(output[0].type, "control_change")
+        self.assertEqual(output[1].type, "program_change")
 
 
 if __name__ == "__main__":
