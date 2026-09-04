@@ -61,9 +61,21 @@ def parse_args():
         "-v", "--verbose",
         action="store_true",
         help="Enable verbose/debug logging."
+)
+    parser.add_argument(
+        "-c", "--config",
+        default=None,
+        help="Path to config file (default: config.ini in script directory)."
     )
     return parser.parse_args()
 
+
+def find_config_path(config_path=None):
+    """Find the config file path."""
+    if config_path:
+        return config_path
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(script_dir, "config.ini")
 
 def list_ports():
     """List all available MIDI input ports."""
@@ -78,12 +90,6 @@ def list_ports():
     print("-" * 40)
     print()
 
-
-def find_config_path():
-    """Find config.ini in the same directory as this script."""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, "config.ini")
-    return config_path
 
 
 def load_config(config_path, verbose=False):
@@ -109,16 +115,16 @@ def load_config(config_path, verbose=False):
         if section.startswith("CH-"):
             ch_num_str = section[3:]  # Extract number after "CH-"
             try:
-                ch_num = int(ch_num_str)
+                ch_num = int(ch_num_str) - 1  # Convert 1-16 to 0-15 (mido uses 0-indexed)
             except ValueError:
                 if verbose:
                     print(f"Warning: Skipping invalid channel section [{section}]")
-                continue
+                    continue
 
-            if ch_num < 1 or ch_num > 16:
+            if ch_num < 0 or ch_num > 15:
                 if verbose:
-                    print(f"Warning: Channel {ch_num} out of range (1-16), skipping")
-                continue
+                    print(f"Warning: Channel {ch_num + 1} out of range (1-16), skipping")
+                    continue
 
             # Read the value (message types)
             value = config.get(section, "RULE").strip().upper()
@@ -327,7 +333,7 @@ def main():
         return
 
     # Load config
-    config_path = find_config_path()
+    config_path = find_config_path(args.config)
     if not os.path.exists(config_path):
         print(f"Error: Config file not found: {config_path}")
         sys.exit(1)
@@ -336,8 +342,6 @@ def main():
         print(f"Loading config from: {config_path}\n")
 
     config = load_config(config_path, verbose)
-
-    # Run the filter
     run_filter(config, verbose)
 
 

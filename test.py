@@ -86,10 +86,10 @@ RULE=BLOCK
 """
         config = self._create_test_config(content)
         self.assertEqual(config["midi_port"], "TestDevice")
+        self.assertIn(0, config["channels"])
         self.assertIn(1, config["channels"])
-        self.assertIn(2, config["channels"])
-        self.assertEqual(config["channels"][1]["type"], "all")
-        self.assertEqual(config["channels"][2]["type"], "block")
+        self.assertEqual(config["channels"][0]["type"], "all")
+        self.assertEqual(config["channels"][1]["type"], "block")
 
     def test_load_allow_rules(self):
         """Test loading config with allow (specific message types)."""
@@ -101,10 +101,10 @@ MIDI_PORT=TestDevice
 RULE=CC,PC,NOTE
 """
         config = self._create_test_config(content)
-        self.assertEqual(config["channels"][3]["type"], "allow")
-        self.assertIn("CC", config["channels"][3]["messages"])
-        self.assertIn("PC", config["channels"][3]["messages"])
-        self.assertIn("NOTE", config["channels"][3]["messages"])
+        self.assertEqual(config["channels"][2]["type"], "allow")
+        self.assertIn("CC", config["channels"][2]["messages"])
+        self.assertIn("PC", config["channels"][2]["messages"])
+        self.assertIn("NOTE", config["channels"][2]["messages"])
 
     def test_load_all_rule(self):
         """Test loading config with ALL rule."""
@@ -116,7 +116,7 @@ MIDI_PORT=TestDevice
 RULE=ALL
 """
         config = self._create_test_config(content)
-        self.assertEqual(config["channels"][5]["type"], "all")
+        self.assertEqual(config["channels"][4]["type"], "all")
 
     def test_load_block_rule(self):
         """Test loading config with BLOCK rule."""
@@ -128,7 +128,7 @@ MIDI_PORT=TestDevice
 RULE=BLOCK
 """
         config = self._create_test_config(content)
-        self.assertEqual(config["channels"][6]["type"], "block")
+        self.assertEqual(config["channels"][5]["type"], "block")
 
     def test_ignore_comments(self):
         """Test that comment lines are ignored."""
@@ -144,7 +144,7 @@ RULE=ALL
 """
         config = self._create_test_config(content)
         self.assertEqual(config["midi_port"], "TestDevice")
-        self.assertEqual(config["channels"][1]["type"], "all")
+        self.assertEqual(config["channels"][0]["type"], "all")
 
     def test_invalid_channel_skipped(self):
         """Test that invalid channel numbers are skipped."""
@@ -162,9 +162,9 @@ RULE=ALL
 RULE=CC
 """
         config = self._create_test_config(content)
-        self.assertNotIn(0, config["channels"])
         self.assertNotIn(17, config["channels"])
-        self.assertIn(1, config["channels"])
+        self.assertNotIn(17, config["channels"])
+        self.assertIn(0, config["channels"])
 
     def test_missing_midi_port_exits(self):
         """Test that missing MIDI_PORT causes exit."""
