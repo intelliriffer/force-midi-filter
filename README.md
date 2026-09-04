@@ -12,12 +12,24 @@ A Python script that filters incoming MIDI input based on channel-specific rules
 
 ## Installation
 
+### On the Akai Force (Mockba mod)
+
+The Mockba mod ships with Python preinstalled — **no setup needed**. Just copy the files (`midifilter.py`, `config.ini`) to the Force and run the script. If `mido` is not already present in the mod's Python, install it once:
+
+```bash
+pip install mido
+```
+
+### On macOS / Linux
+
 1. Install Python 3.8+ (if not already installed)
 2. Install the MIDO library:
 
 ```bash
 pip install mido
 ```
+
+> `mido` pulls in `python-rtmidi` automatically. On some systems you may also need the portaudio/rtmidi system library (e.g. `brew install portaudio` on macOS or `sudo apt install libportaudio2` on Linux) if the `rtmidi` build fails.
 
 No other dependencies required.
 
