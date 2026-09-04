@@ -22,7 +22,7 @@ Create a python script for filtering incoming midi input. (primarily for moddeed
 
 ## Tech Stack
 1. Compatible with python 3.8
-2. Use Midi for midi
+2. Use MIDI for midi
 3. Should not use any third party libraries. (minimal and native )
 
 
