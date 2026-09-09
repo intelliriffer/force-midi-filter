@@ -10,6 +10,11 @@ A Python script that filters incoming MIDI input based on channel-specific rules
 - **Auto-reconnect** — Polls for missing ports every 5 seconds
 - **Configurable** — Easy-to-edit INI config file with comments
 
+ ## ⭕️ IMPORTANT GOTCHA'S
+
+- The Add-on Folder name should be `force-midi-filter`. Some times GitHub adds -main to the project folder, so rename it (remove -main in end) 
+- Make sure python is enabled in your ADM  in your terminal type `adm` move to `python3.8` and enable it! This is **Very Important**. This add-on will not work otherwise. Enabling python  just registers certain python libraries with the system so it can communicate with MIDI. 
+
 ## Installation
 
 ### On the Akai Force (Mockba mod)
@@ -48,7 +53,7 @@ python3 midifilter.py
 ```bash
 python3 midifilter.py -v
 ```
-
+r
 ## Configuration
 
 Edit `config.ini` in the same directory as `midifilter.py`.
